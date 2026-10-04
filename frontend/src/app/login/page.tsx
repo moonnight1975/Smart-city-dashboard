@@ -12,33 +12,69 @@ const CityMap = dynamic(() => import('@/components/CityMap'), { ssr: false });
 export default function LoginPage() {
   const router = useRouter();
   const { login } = useAppStore();
+  
+  const [isSignUp, setIsSignUp] = useState(false);
+  
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setSuccess('');
 
     try {
-      const res = await fetch((process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001') + '/auth/login', {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://tcqwaoobymicskftstmu.supabase.co';
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_ycKKA4OU0nBoD6BaWOx2eg_s0i9_6FN';
+
+      const endpoint = isSignUp ? '/auth/v1/signup' : '/auth/v1/token?grant_type=password';
+
+      const payload: any = { email, password };
+      if (isSignUp) {
+        payload.data = { full_name: name };
+      }
+
+      const res = await fetch(`${supabaseUrl}${endpoint}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`
+        },
+        body: JSON.stringify(payload)
       });
 
       const data = await res.json();
       
       if (!res.ok) {
-        throw new Error(data.detail || 'Authentication failed');
+        throw new Error(data.error_description || data.msg || data.message || 'Authentication failed');
       }
 
-      login(data.user, data.token);
-      router.push('/');
+      if (isSignUp) {
+        setSuccess('Registration successful! You can now sign in.');
+        setIsSignUp(false);
+        setPassword('');
+      } else {
+        // Supabase returns { user: {...}, access_token: "..." }
+        const userPayload = {
+          id: data.user.id,
+          name: data.user.user_metadata?.full_name || email.split('@')[0],
+          email: data.user.email,
+          role: data.user.user_metadata?.role || 'admin',
+          status: 'Active'
+        };
+
+        login(userPayload, data.access_token);
+        router.push('/');
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -87,8 +123,12 @@ export default function LoginPage() {
           </div>
 
           <div style={{ marginBottom: 32 }}>
-            <h2 style={{ fontSize: 28, fontWeight: 700, fontFamily: "'Instrument Serif', sans-serif", marginBottom: 8 }}>Welcome back</h2>
-            <p style={{ color: 'var(--text-muted)' }}>Sign in to access the command center.</p>
+            <h2 style={{ fontSize: 28, fontWeight: 700, fontFamily: "'Instrument Serif', sans-serif", marginBottom: 8 }}>
+              {isSignUp ? 'Create an account' : 'Welcome back'}
+            </h2>
+            <p style={{ color: 'var(--text-muted)' }}>
+              {isSignUp ? 'Register to access the command center.' : 'Sign in to access the command center.'}
+            </p>
           </div>
 
           {error && (
@@ -97,7 +137,29 @@ export default function LoginPage() {
             </div>
           )}
 
-          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {success && (
+            <div style={{ background: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)', padding: '12px 16px', borderRadius: 8, color: 'var(--accent-green)', fontSize: 13, marginBottom: 24, display: 'flex', alignItems: 'center', gap: 8 }}>
+              {success}
+            </div>
+          )}
+
+          <form onSubmit={handleAuth} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {isSignUp && (
+              <div>
+                <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}>Full Name</label>
+                <input 
+                  type="text" 
+                  required
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                  placeholder="Jane Doe"
+                  style={{ width: '100%', padding: '12px 16px', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 8, color: 'var(--text-primary)', fontSize: 14, outline: 'none', transition: 'border-color 0.2s' }}
+                  onFocus={(e) => e.target.style.borderColor = 'var(--accent-cyan)'}
+                  onBlur={(e) => e.target.style.borderColor = 'var(--border-color)'}
+                />
+              </div>
+            )}
+
             <div>
               <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 8 }}>Email Address</label>
               <input 
@@ -135,20 +197,22 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                <input 
-                  type="checkbox" 
-                  checked={rememberMe}
-                  onChange={e => setRememberMe(e.target.checked)}
-                  style={{ width: 16, height: 16, accentColor: 'var(--accent-cyan)' }}
-                />
-                <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Remember me</span>
-              </label>
-              <Link href="/forgot-password" style={{ fontSize: 13, color: 'var(--accent-cyan)', textDecoration: 'none', fontWeight: 500 }}>
-                Forgot password?
-              </Link>
-            </div>
+            {!isSignUp && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={rememberMe}
+                    onChange={e => setRememberMe(e.target.checked)}
+                    style={{ width: 16, height: 16, accentColor: 'var(--accent-cyan)' }}
+                  />
+                  <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Remember me</span>
+                </label>
+                <Link href="/forgot-password" style={{ fontSize: 13, color: 'var(--accent-cyan)', textDecoration: 'none', fontWeight: 500 }}>
+                  Forgot password?
+                </Link>
+              </div>
+            )}
 
             <button 
               type="submit" 
@@ -156,16 +220,24 @@ export default function LoginPage() {
               className="btn-primary"
               style={{ width: '100%', padding: '12px', justifyContent: 'center', fontSize: 14, marginTop: 8 }}
             >
-              {loading ? <Loader2 size={18} className="spin" style={{ animation: 'spin 1s linear infinite' }} /> : 'Sign In'}
+              {loading ? <Loader2 size={18} className="spin" style={{ animation: 'spin 1s linear infinite' }} /> : (isSignUp ? 'Sign Up' : 'Sign In')}
             </button>
           </form>
-          
-          <div style={{ marginTop: 32, padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid var(--border-color)', fontSize: 12, color: 'var(--text-muted)' }}>
-            <div style={{ fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4 }}>Demo Credentials</div>
-            <div>Admin: <code style={{ color: 'var(--accent-cyan)' }}>admin@metrocity.gov</code> / <code style={{ color: 'var(--accent-cyan)' }}>admin123</code></div>
-            <div>Citizen: <code style={{ color: 'var(--accent-green)' }}>citizen@metrocity.app</code> / <code style={{ color: 'var(--accent-green)' }}>citizen123</code></div>
-          </div>
 
+          <div style={{ marginTop: 24, textAlign: 'center', fontSize: 13, color: 'var(--text-secondary)' }}>
+            {isSignUp ? 'Already have an account?' : 'Don\'t have an account?'}
+            <button 
+              onClick={() => {
+                setIsSignUp(!isSignUp);
+                setError('');
+                setSuccess('');
+              }} 
+              style={{ background: 'none', border: 'none', color: 'var(--accent-cyan)', fontWeight: 600, marginLeft: 8, cursor: 'pointer' }}
+            >
+              {isSignUp ? 'Sign In' : 'Sign Up'}
+            </button>
+          </div>
+          
         </div>
       </div>
       
