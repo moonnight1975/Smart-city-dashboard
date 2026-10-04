@@ -14,12 +14,60 @@ from pydantic import BaseModel
 from typing import Optional, List
 import numpy as np
 import uvicorn
+import os
+from routers import gis
+
+# Phase 2 Foundation
+from database import engine, SessionLocal, get_db
+import models
+import auth
+from sqlalchemy.orm import Session
+from fastapi import Depends
+
+models.Base.metadata.create_all(bind=engine)
+
+# Seed initial admin user if not exists
+def seed_admin():
+    db = SessionLocal()
+    if not db.query(models.User).filter_by(email="admin@metrocity.ai").first():
+        admin = models.User(
+            id="USR-ADMIN",
+            name="System Administrator",
+            email="admin@metrocity.ai",
+            role="admin",
+            password_hash=auth.get_password_hash("admin123")
+        )
+        citizen = models.User(
+            id="USR-CITIZEN",
+            name="Rahul Sharma",
+            email="citizen@metrocity.ai",
+            role="citizen",
+            password_hash=auth.get_password_hash("citizen123")
+        )
+        db.add_all([admin, citizen])
+        db.commit()
+    db.close()
+
+seed_admin()
 
 app = FastAPI(
     title="MetroCity Smart Dashboard API",
     description="Unified Smart City Monitoring and Management API",
     version="1.0.0"
 )
+
+from routers import issues as issues_router
+from routers import admin as admin_router
+from routers import metrics as metrics_router
+from routers import analytics as analytics_router
+from routers import ai as ai_router
+
+app.include_router(gis.router, prefix="/gis", tags=["GIS"])
+app.include_router(issues_router.router, prefix="/api/v2", tags=["Issues"])
+app.include_router(admin_router.router, prefix="/api/v2", tags=["Admin"])
+app.include_router(metrics_router.router, prefix="/api/v2", tags=["Metrics"])
+app.include_router(analytics_router.router, prefix="/api/v2", tags=["Analytics"])
+app.include_router(ai_router.router, prefix="/api/v2", tags=["AI"])
 
 # CORS
 app.add_middleware(
@@ -790,5 +838,31 @@ def admin_metrics(x_demo_token: Optional[str] = Header(default=None)):
 # RUN
 # ─────────────────────────────────
 
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str
+    user: dict
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+@app.post("/api/v2/auth/login", response_model=TokenResponse)
+def login_v2(payload: LoginRequest, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.email == payload.email).first()
+    if not user or not auth.verify_password(payload.password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Incorrect email or password")
+    
+    access_token_expires = timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = auth.create_access_token(
+        data={"sub": user.id, "role": user.role}, expires_delta=access_token_expires
+    )
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {"id": user.id, "name": user.name, "email": user.email, "role": user.role}
+    }
+
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=8001, reload=True)

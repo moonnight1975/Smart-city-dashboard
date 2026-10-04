@@ -2,7 +2,9 @@
 
 import { useAppStore } from '@/lib/store';
 import { LayoutDashboard, Car, Wind, MessageSquare, Brain, Route } from 'lucide-react';
-import { aiPredictions } from '@/lib/mockData';
+const aiPredictions = [
+  { id: 1, title: 'Severe Waterlogging Predicted', risk: 'critical' }
+];
 
 const mobileNav = [
   { id: 'overview',   label: 'Home',       icon: LayoutDashboard },

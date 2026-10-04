@@ -3,7 +3,14 @@
 import { useState } from 'react';
 import { useAppStore } from '@/lib/store';
 import { Bell, Search, User, ChevronDown, Shield, LogOut, Menu, Brain, X, MessageSquare, Siren, Sun, Moon } from 'lucide-react';
-import { alerts, aiPredictions } from '@/lib/mockData';
+const alerts = [
+  { id: 1, type: 'critical', message: 'High voltage fluctuation in North Grid', time: '10m ago' },
+  { id: 2, type: 'warning', message: 'Traffic congestion detected on Main Bypass', time: '1h ago' }
+];
+
+const aiPredictions = [
+  { id: 1, title: 'Severe Waterlogging Predicted', risk_level: 'Critical' }
+];
 import FeedbackModal from '@/components/FeedbackModal';
 
 interface NavbarProps {
@@ -21,7 +28,6 @@ export default function Navbar({ onMobileMenuToggle }: NavbarProps) {
     overview: 'City Overview',
     'road-intelligence': 'Nalasopara Road Intelligence',
     'issue-operations': 'Admin Issue Operations',
-    map: 'Live City Map',
     traffic: 'Traffic Monitoring',
     aqi: 'Air Quality Index',
     waste: 'Waste Management',
@@ -34,19 +40,10 @@ export default function Navbar({ onMobileMenuToggle }: NavbarProps) {
     admin: 'Admin Panel',
   };
 
-  const criticalAI = aiPredictions.filter(p => p.risk === 'critical').length;
+  const criticalAI = aiPredictions.filter(p => p.risk_level === 'Critical').length;
 
   return (
-    <header style={{
-      position: 'fixed', top: 0, left: 0, right: 0,
-      height: 60, zIndex: 20,
-      background: 'rgba(6, 11, 24, 0.92)',
-      backdropFilter: 'blur(20px)',
-      WebkitBackdropFilter: 'blur(20px)',
-      borderBottom: '1px solid rgba(255,255,255,0.06)',
-      display: 'flex', alignItems: 'center',
-      padding: '0 16px', gap: 12,
-    }}>
+    <header className="navbar-header">
       
       {/* Mobile: Hamburger */}
       <button
@@ -63,13 +60,10 @@ export default function Navbar({ onMobileMenuToggle }: NavbarProps) {
         <Menu size={18} color="#94a3b8" />
       </button>
 
-      {/* Desktop spacer */}
-      <div className="sidebar-spacer" />
-
       {/* Page title */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <h1 style={{
-          fontFamily: "'Space Grotesk', sans-serif",
+          fontFamily: "'Instrument Serif', sans-serif",
           fontSize: 'clamp(14px, 2.5vw, 17px)',
           fontWeight: 700, color: '#f0f6ff',
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
@@ -304,20 +298,39 @@ export default function Navbar({ onMobileMenuToggle }: NavbarProps) {
       </div>
 
       <style>{`
+        .navbar-header {
+          position: fixed;
+          top: 16px;
+          left: 104px;
+          right: 16px;
+          height: 64px;
+          border-radius: 32px;
+          z-index: 20;
+          background: rgba(11, 16, 32, 0.85);
+          backdrop-filter: blur(24px);
+          -webkit-backdrop-filter: blur(24px);
+          border: 1px solid rgba(255,255,255,0.08);
+          box-shadow: 0 16px 48px rgba(0, 0, 0, 0.3);
+          display: flex;
+          align-items: center;
+          padding: 0 20px;
+          gap: 12px;
+          transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
         @keyframes pulse-badge {
           0%, 100% { box-shadow: 0 0 0 0 rgba(139,92,246,0.3); }
           50% { box-shadow: 0 0 0 4px rgba(139,92,246,0); }
         }
-        /* Desktop: show sidebar spacer & search, hide mobile-only */
+        /* Desktop: hide mobile-only */
         @media (min-width: 1024px) {
-          .sidebar-spacer { width: 240px; flex-shrink: 0; transition: width 0.3s; }
-          .sidebar-spacer.collapsed { width: 72px; }
           .lg-hidden { display: none !important; }
           .mobile-search-btn { display: none !important; }
           .desktop-search { display: block !important; }
         }
         @media (max-width: 1023px) {
-          .sidebar-spacer { display: none; }
+          .navbar-header {
+            left: 16px;
+          }
           .desktop-search { display: none !important; }
         }
         @media (max-width: 640px) {

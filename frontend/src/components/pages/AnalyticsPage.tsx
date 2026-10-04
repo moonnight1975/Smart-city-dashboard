@@ -1,95 +1,102 @@
 'use client';
 
-import { aqiHistory, trafficHistory, complaintsByArea, wasteCollectionByArea } from '@/lib/mockData';
-import { TrendingUp, TrendingDown, BarChart2, Activity, Zap } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { TrendingUp, TrendingDown, BarChart2, Activity, Zap, Loader2 } from 'lucide-react';
 import {
   ComposedChart, Bar, Line, Area, AreaChart, BarChart,
-  ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid, Legend
+  ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid, Legend, Cell
 } from 'recharts';
 
-const weeklyData = Array.from({ length: 7 }, (_, i) => ({
-  day: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i],
-  complaints: Math.round(30 + Math.random() * 20),
-  resolved: Math.round(20 + Math.random() * 15),
-  airQuality: Math.round(80 + Math.sin(i) * 30 + Math.random() * 20),
-  traffic: Math.round(50 + Math.sin(i * 0.8) * 25 + Math.random() * 15),
-}));
-
 export default function AnalyticsPage() {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001'}/api/v2/analytics`)
+      .then(res => res.json())
+      .then(resData => {
+        setData(resData);
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) return (
+    <div style={{ display: 'flex', justifyContent: 'center', padding: '100px 0' }}>
+      <Loader2 className="animate-spin text-accent-cyan" size={32} />
+    </div>
+  );
+
   return (
-    <div className="page-enter" style={{ padding: 24 }}>
+    <div className="page-enter" style={{ padding: 24, maxWidth: 1400, margin: '0 auto' }}>
+      <div style={{ marginBottom: 24 }}>
+        <h1 className="page-title">City Analytics</h1>
+        <p style={{ color: 'var(--text-muted)' }}>Historical trends and correlation across urban operations.</p>
+      </div>
+
       {/* KPIs */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 24 }}>
-        {[
-          { label: 'City Health Score', value: '72', unit: '/100', trend: '+4', positive: true, color: '#10b981', desc: 'Combined all factors' },
-          { label: 'Response Efficiency', value: '84', unit: '%', trend: '+7%', positive: true, color: '#3b82f6', desc: 'Complaints resolved' },
-          { label: 'Pollution Index', value: '63', unit: '/100', trend: '-5', positive: true, color: '#f59e0b', desc: 'Lower is better' },
-          { label: 'Infrastructure Load', value: '78', unit: '%', positive: false, trend: '+2%', color: '#ef4444', desc: 'System capacity' },
-        ].map((kpi) => (
-          <div key={kpi.label} className="metric-card">
-            <div style={{ fontSize: 13, color: '#475569', marginBottom: 8 }}>{kpi.label}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 16, marginBottom: 24 }}>
+        {data.kpis.map((kpi: any) => (
+          <div key={kpi.label} className="glass-card" style={{ padding: 20 }}>
+            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 8 }}>{kpi.label}</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
-              <span style={{ fontSize: 32, fontWeight: 800, color: kpi.color, fontFamily: "'Space Grotesk', sans-serif" }}>{kpi.value}</span>
-              <span style={{ fontSize: 14, color: '#475569' }}>{kpi.unit}</span>
+              <span style={{ fontSize: 32, fontWeight: 800, color: kpi.color, fontFamily: "'Instrument Serif', sans-serif" }}>{kpi.value}</span>
+              <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>{kpi.unit}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 4 }}>
               {kpi.positive ? <TrendingUp size={12} color="#10b981" /> : <TrendingDown size={12} color="#ef4444" />}
               <span style={{ fontSize: 12, color: kpi.positive ? '#10b981' : '#ef4444', fontWeight: 600 }}>{kpi.trend}</span>
-              <span style={{ fontSize: 11, color: '#475569' }}>vs last week</span>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>vs last week</span>
             </div>
-            <div style={{ fontSize: 11, color: '#475569', marginTop: 4 }}>{kpi.desc}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{kpi.desc}</div>
           </div>
         ))}
       </div>
 
-      {/* Weekly Overview */}
-      <div className="glass-card" style={{ padding: 24, marginBottom: 24 }}>
-        <div className="section-title">Weekly City Overview</div>
-        <ResponsiveContainer width="100%" height={280}>
-          <ComposedChart data={weeklyData} margin={{ top: 5, right: 20, bottom: 0, left: -10 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-            <XAxis dataKey="day" tick={{ fill: '#475569', fontSize: 12 }} />
-            <YAxis yAxisId="left" tick={{ fill: '#475569', fontSize: 12 }} />
-            <YAxis yAxisId="right" orientation="right" tick={{ fill: '#475569', fontSize: 12 }} />
-            <Tooltip contentStyle={{ background: '#0d1629', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 12 }} />
-            <Legend wrapperStyle={{ fontSize: 12, color: '#94a3b8' }} />
-            <Bar yAxisId="left" dataKey="complaints" name="Complaints" fill="rgba(239, 68, 68, 0.6)" radius={[3, 3, 0, 0]} />
-            <Bar yAxisId="left" dataKey="resolved" name="Resolved" fill="rgba(16, 185, 129, 0.6)" radius={[3, 3, 0, 0]} />
-            <Line yAxisId="right" type="monotone" dataKey="traffic" name="Traffic %" stroke="#f59e0b" strokeWidth={2} dot={false} />
-            <Line yAxisId="right" type="monotone" dataKey="airQuality" name="AQI" stroke="#ef4444" strokeWidth={2} dot={false} />
-          </ComposedChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* Bottom charts */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-        <div className="glass-card" style={{ padding: 24 }}>
-          <div className="section-title">Complaints by Area</div>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={complaintsByArea} margin={{ top: 5, right: 10, bottom: 5, left: -10 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-              <XAxis dataKey="area" tick={{ fill: '#475569', fontSize: 11 }} />
-              <YAxis tick={{ fill: '#475569', fontSize: 11 }} />
-              <Tooltip contentStyle={{ background: '#0d1629', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 12 }} />
-              <Bar dataKey="count" name="Complaints" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 24, marginBottom: 24 }}>
+        
+        {/* Main Correlation Chart */}
+        <div className="glass-card" style={{ gridColumn: 'span 12', '@media (min-width: 1024px)': { gridColumn: 'span 8' } } as any}>
+          <div style={{ padding: 20, borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="section-title" style={{ margin: 0 }}>Weekly System Correlation</div>
+          </div>
+          <div style={{ padding: 20, height: 360 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={data.weekly_trends} margin={{ top: 10, right: 10, bottom: 0, left: -20 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                <XAxis dataKey="day" tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} dy={10} />
+                <YAxis yAxisId="left" tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis yAxisId="right" orientation="right" tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={{ background: '#0a1121', border: '1px solid #1e293b', borderRadius: 8 }} />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: 12 }} />
+                
+                <Bar yAxisId="left" dataKey="complaints" name="New Complaints" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                <Bar yAxisId="left" dataKey="resolved" name="Resolved" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={40} />
+                <Line yAxisId="right" type="monotone" dataKey="airQuality" name="AQI" stroke="#f59e0b" strokeWidth={3} dot={{ r: 4, fill: '#0a1121', strokeWidth: 2 }} />
+                <Line yAxisId="right" type="monotone" dataKey="traffic" name="Traffic" stroke="#ef4444" strokeWidth={3} dot={{ r: 4, fill: '#0a1121', strokeWidth: 2 }} />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
         </div>
 
-        <div className="glass-card" style={{ padding: 24 }}>
-          <div className="section-title">Waste Collection vs Target</div>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={wasteCollectionByArea} margin={{ top: 5, right: 10, bottom: 5, left: -10 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-              <XAxis dataKey="area" tick={{ fill: '#475569', fontSize: 11 }} />
-              <YAxis tick={{ fill: '#475569', fontSize: 11 }} />
-              <Tooltip contentStyle={{ background: '#0d1629', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 12 }} />
-              <Legend wrapperStyle={{ fontSize: 11, color: '#94a3b8' }} />
-              <Bar dataKey="target" name="Target" fill="rgba(255,255,255,0.08)" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="collected" name="Collected" fill="#10b981" radius={[4, 4, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+        {/* Complaints by Area */}
+        <div className="glass-card" style={{ gridColumn: 'span 12', '@media (min-width: 1024px)': { gridColumn: 'span 4' } } as any}>
+          <div style={{ padding: 20, borderBottom: '1px solid var(--border-color)' }}>
+            <div className="section-title" style={{ margin: 0 }}>Complaints by Area</div>
+          </div>
+          <div style={{ padding: 20, height: 360 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={data.complaints_by_area} layout="vertical" margin={{ top: 0, right: 10, bottom: 0, left: 10 }}>
+                <XAxis type="number" hide />
+                <YAxis dataKey="area" type="category" tick={{ fill: '#94a3b8', fontSize: 11 }} width={80} axisLine={false} tickLine={false} />
+                <Tooltip cursor={{ fill: 'rgba(255,255,255,0.02)' }} contentStyle={{ background: '#0a1121', border: '1px solid #1e293b', borderRadius: 8 }} />
+                <Bar dataKey="count" name="Complaints" fill="#8b5cf6" radius={[0, 4, 4, 0]}>
+                  {data.complaints_by_area.map((_: any, i: number) => <Cell key={i} fill={`hsl(${260 + i * 15}, 70%, 60%)`} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
+
       </div>
     </div>
   );

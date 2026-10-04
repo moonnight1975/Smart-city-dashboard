@@ -145,7 +145,7 @@ export default function FeedbackModal({
               <MessageSquare size={18} color="#00d4ff" />
             </div>
             <div>
-              <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 16, fontWeight: 800, color: '#f0f6ff' }}>Feedback</div>
+              <div style={{ fontFamily: "'Instrument Serif', sans-serif", fontSize: 16, fontWeight: 800, color: '#f0f6ff' }}>Feedback</div>
               <div style={{ fontSize: 12, color: '#475569', marginTop: 2 }}>Help improve MetroCity Dashboard</div>
             </div>
           </div>

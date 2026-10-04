@@ -1,12 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAppStore } from '@/lib/store';
 import { useLiveSocket } from '@/lib/useLiveSocket';
 import Sidebar from '@/components/Sidebar';
 import Navbar from '@/components/Navbar';
 import OverviewPage from '@/components/pages/OverviewPage';
-import MapPage from '@/components/pages/MapPage';
 import TrafficPage from '@/components/pages/TrafficPage';
 import AQIPage from '@/components/pages/AQIPage';
 import WastePage from '@/components/pages/WastePage';
@@ -20,12 +20,23 @@ import AIAlertsPage from '@/components/pages/AIAlertsPage';
 import RoadIntelligencePage from '@/components/pages/RoadIntelligencePage';
 import AdminOperationsPage from '@/components/pages/AdminOperationsPage';
 import MobileBottomNav from '@/components/MobileBottomNav';
+import GISExplorerPage from '@/components/pages/GISExplorerPage';
+import GISAnalysisPage from '@/components/pages/GISAnalysisPage';
+import RemoteSensingPage from '@/components/pages/RemoteSensingPage';
+import SpatialStatsPage from '@/components/pages/SpatialStatsPage';
+import UrbanModelsPage from '@/components/pages/UrbanModelsPage';
+import AutomationStudioPage from '@/components/pages/AutomationStudioPage';
 
 const pageMap: Record<string, React.ComponentType> = {
   overview: OverviewPage,
   'road-intelligence': RoadIntelligencePage,
   'issue-operations': AdminOperationsPage,
-  map: MapPage,
+  'gis-explorer': GISExplorerPage,
+  'gis-analysis': GISAnalysisPage,
+  'remote-sensing': RemoteSensingPage,
+  'spatial-stats': SpatialStatsPage,
+  'urban-models': UrbanModelsPage,
+  'automation-studio': AutomationStudioPage,
   traffic: TrafficPage,
   aqi: AQIPage,
   waste: WastePage,
@@ -36,12 +47,27 @@ const pageMap: Record<string, React.ComponentType> = {
   'ai-alerts': AIAlertsPage,
   analytics: AnalyticsPage,
   admin: AdminPage,
+  'data-sources': AdminPage,
+  'system-health': AdminPage,
+  'user-management': AdminPage,
 };
 
 export default function Dashboard() {
-  const { activePage, sidebarCollapsed } = useAppStore();
+  const router = useRouter();
+  const { activePage, sidebarCollapsed, isAuthenticated } = useAppStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (isClient && !isAuthenticated) {
+      router.push('/login');
+    }
+  }, [isClient, isAuthenticated, router]);
 
   useLiveSocket();
   
@@ -59,7 +85,13 @@ export default function Dashboard() {
     setMobileMenuOpen(false);
   }, [activePage]);
 
-  const sidebarWidth = sidebarCollapsed ? 72 : 240;
+  if (!isClient || !isAuthenticated) return null; // Avoid rendering flash before redirect
+
+  const sidebarWidth = 104; // Fixed margin for floating pill sidebar (16px left + 72px width + 16px right gap)
+  
+  // List of pages that should span the full width (map backgrounds)
+  const fullScreenPages = ['overview', 'gis-explorer', 'gis-analysis', 'remote-sensing', 'spatial-stats', 'urban-models'];
+  const isFullScreen = fullScreenPages.includes(activePage);
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
@@ -71,11 +103,12 @@ export default function Dashboard() {
       
       <main
         style={{
-          marginLeft: isMobile ? 0 : sidebarWidth,
-          marginTop: 60,
-          minHeight: 'calc(100vh - 60px)',
+          position: 'relative',
+          paddingLeft: isMobile || isFullScreen ? 0 : sidebarWidth,
+          marginTop: isFullScreen ? 0 : 96,
+          minHeight: isFullScreen ? '100vh' : 'calc(100vh - 96px)',
           paddingBottom: isMobile ? 72 : 0, // space for bottom nav
-          transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          transition: 'padding-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           overflowX: 'hidden',
         }}
       >

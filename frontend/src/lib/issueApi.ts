@@ -25,45 +25,51 @@ export type CivicIssue = {
 
 export type Worker = { id: string; name: string; department: string; availability: string; active_assignments: number };
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-const ADMIN_TOKEN = process.env.NEXT_PUBLIC_ADMIN_TOKEN || 'demo-admin-token';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
 
-const adminHeaders = () => ({ 'Content-Type': 'application/json', 'x-demo-token': ADMIN_TOKEN });
+const adminHeaders = () => {
+  let token = 'demo-admin-token'; // Fallback
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem('metrocity_token');
+    if (stored) token = stored;
+  }
+  return { 'Content-Type': 'application/json', 'x-demo-token': token };
+};
 
 export async function fetchAdminIssues(): Promise<CivicIssue[]> {
-  const response = await fetch(`${API_BASE_URL}/admin/issues`, { headers: adminHeaders(), cache: 'no-store' });
+  const response = await fetch(`${API_BASE_URL}/api/v2/admin/issues`, { headers: adminHeaders(), cache: 'no-store' });
   if (!response.ok) throw new Error('Unable to load admin issues');
   const payload = await response.json();
   return payload.issues ?? [];
 }
 
 export async function fetchAdminMetrics() {
-  const response = await fetch(`${API_BASE_URL}/admin/metrics`, { headers: adminHeaders(), cache: 'no-store' });
+  const response = await fetch(`${API_BASE_URL}/api/v2/admin/metrics`, { headers: adminHeaders(), cache: 'no-store' });
   if (!response.ok) throw new Error('Unable to load admin metrics');
   return response.json();
 }
 
 export async function fetchWorkers(): Promise<Worker[]> {
-  const response = await fetch(`${API_BASE_URL}/admin/workers`, { headers: adminHeaders(), cache: 'no-store' });
+  const response = await fetch(`${API_BASE_URL}/api/v2/admin/workers`, { headers: adminHeaders(), cache: 'no-store' });
   if (!response.ok) throw new Error('Unable to load workers');
   const payload = await response.json();
   return payload.workers ?? [];
 }
 
 export async function updateIssueStatus(issueId: string, status: IssueStatus, note: string) {
-  const response = await fetch(`${API_BASE_URL}/admin/issues/${issueId}/status`, { method: 'PATCH', headers: adminHeaders(), body: JSON.stringify({ status, note }) });
+  const response = await fetch(`${API_BASE_URL}/api/v2/admin/issues/${issueId}/status`, { method: 'PATCH', headers: adminHeaders(), body: JSON.stringify({ status, note }) });
   if (!response.ok) throw new Error('Unable to update issue status');
   return response.json();
 }
 
 export async function assignIssue(issueId: string, worker: Worker) {
-  const response = await fetch(`${API_BASE_URL}/admin/issues/${issueId}/assign`, { method: 'POST', headers: adminHeaders(), body: JSON.stringify({ worker_id: worker.id, worker_name: worker.name, department: worker.department, eta: '48 hours' }) });
+  const response = await fetch(`${API_BASE_URL}/api/v2/admin/issues/${issueId}/assign`, { method: 'POST', headers: adminHeaders(), body: JSON.stringify({ worker_id: worker.id, worker_name: worker.name, department: worker.department, eta: '48 hours' }) });
   if (!response.ok) throw new Error('Unable to assign issue');
   return response.json();
 }
 
 export async function uploadRepairEvidence(issueId: string, note: string, evidenceType = 'after') {
-  const response = await fetch(`${API_BASE_URL}/admin/issues/${issueId}/evidence`, { method: 'POST', headers: adminHeaders(), body: JSON.stringify({ evidence_type: evidenceType, note }) });
+  const response = await fetch(`${API_BASE_URL}/api/v2/admin/issues/${issueId}/evidence`, { method: 'POST', headers: adminHeaders(), body: JSON.stringify({ evidence_type: evidenceType, note }) });
   if (!response.ok) throw new Error('Unable to upload repair evidence');
   return response.json();
 }

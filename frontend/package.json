@@ -3,13 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "next dev --webpack",
+    "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx --ignore-pattern node_modules --ignore-pattern .next"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.101.1",
+    "@turf/turf": "^7.4.0",
     "@types/leaflet": "^1.9.21",
     "@types/mapbox-gl": "^3.4.1",
     "date-fns": "^4.1.0",

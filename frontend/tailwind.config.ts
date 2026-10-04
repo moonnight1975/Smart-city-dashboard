@@ -10,15 +10,18 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        primary: '#060b18',
-        secondary: '#0d1629',
+        primary: 'var(--bg-primary)',
+        secondary: 'var(--bg-secondary)',
+        card: 'var(--bg-card)',
         accent: {
-          cyan: '#00d4ff',
-          blue: '#3b82f6',
-          purple: '#8b5cf6',
-          green: '#10b981',
-          orange: '#f59e0b',
-          red: '#ef4444',
+          cyan: 'var(--accent-cyan)',
+          teal: 'var(--accent-teal)',
+          blue: 'var(--accent-blue)',
+          purple: 'var(--accent-purple)',
+          green: 'var(--accent-green)',
+          orange: 'var(--accent-orange)',
+          amber: 'var(--accent-amber)',
+          red: 'var(--accent-red)',
         },
       },
       fontFamily: {

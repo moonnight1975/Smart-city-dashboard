@@ -1,7 +1,7 @@
 import type { RoadSegment } from '@/lib/mockData';
 import { governmentLocations as fallbackGovernmentLocations, governmentSources as fallbackGovernmentSources, type GovernmentLocation, type GovernmentSource } from '@/lib/governmentData';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001';
 
 function normalizeRoad(item: any): RoadSegment {
   return {

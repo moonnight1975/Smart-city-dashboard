@@ -20,6 +20,9 @@ export type SystemLogEntry = {
 
 // Store for global state
 interface AppState {
+  isAuthenticated: boolean;
+  user: any | null;
+  token: string | null;
   role: 'citizen' | 'admin';
   activePage: string;
   sidebarCollapsed: boolean;
@@ -28,6 +31,10 @@ interface AppState {
   live: LiveUpdate;
   emergencyMode: boolean;
   logs: SystemLogEntry[];
+  
+  login: (user: any, token: string) => void;
+  logout: () => void;
+  
   setRole: (role: 'citizen' | 'admin') => void;
   setActivePage: (page: string) => void;
   toggleSidebar: () => void;
@@ -38,8 +45,28 @@ interface AppState {
   addLog: (entry: Omit<SystemLogEntry, 'id' | 'ts'> & Partial<Pick<SystemLogEntry, 'id' | 'ts'>>) => void;
 }
 
+const getStoredAuth = () => {
+  if (typeof window === 'undefined') return { isAuthenticated: false, user: null, token: null, role: 'admin' as const };
+  const token = localStorage.getItem('metrocity_token');
+  const userStr = localStorage.getItem('metrocity_user');
+  if (token && userStr) {
+    try {
+      const user = JSON.parse(userStr);
+      return { isAuthenticated: true, user, token, role: user.role || 'admin' as const };
+    } catch {
+      return { isAuthenticated: false, user: null, token: null, role: 'admin' as const };
+    }
+  }
+  return { isAuthenticated: false, user: null, token: null, role: 'admin' as const };
+};
+
+const initialAuth = getStoredAuth();
+
 let globalState: AppState = {
-  role: 'admin',
+  isAuthenticated: initialAuth.isAuthenticated,
+  user: initialAuth.user,
+  token: initialAuth.token,
+  role: initialAuth.role,
   activePage: 'overview',
   sidebarCollapsed: false,
   notifications: 5,
@@ -47,6 +74,8 @@ let globalState: AppState = {
   live: {},
   emergencyMode: false,
   logs: [],
+  login: () => {},
+  logout: () => {},
   setRole: () => {},
   setActivePage: () => {},
   toggleSidebar: () => {},
@@ -74,6 +103,22 @@ export function useAppStore(): AppState {
 
   return {
     ...globalState,
+    login: (user, token) => {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('metrocity_token', token);
+        localStorage.setItem('metrocity_user', JSON.stringify(user));
+      }
+      globalState = { ...globalState, isAuthenticated: true, user, token, role: user.role || 'citizen' };
+      notifyListeners();
+    },
+    logout: () => {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('metrocity_token');
+        localStorage.removeItem('metrocity_user');
+      }
+      globalState = { ...globalState, isAuthenticated: false, user: null, token: null };
+      notifyListeners();
+    },
     setRole: (role) => {
       globalState = { ...globalState, role };
       notifyListeners();
